@@ -1,0 +1,37 @@
+{
+  "name": "resident-portal-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "migrate": "tsx src/db/migrate.ts",
+    "worker": "tsx src/queue/worker.ts",
+    "test:webhook": "tsx scripts/test-webhook.ts",
+    "admin:link-token": "tsx scripts/create-link-token.ts"
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "^9.1.0",
+    "bullmq": "^5.10.4",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.1",
+    "firebase-admin": "^12.6.0",
+    "ioredis": "^5.4.1",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.12.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@types/pg": "^8.11.10",
+    "eslint": "^9.12.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.2"
+  }
+}

@@ -1,0 +1,29 @@
+# Environment files
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Firebase credentials
+firebase-service-account.json
+**/GoogleService-Info.plist
+**/google-services.json
+
+# Apple credentials
+*.p8
+*.p12
+*.mobileprovision
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

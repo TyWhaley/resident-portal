@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: resident-portal-postgres
+    environment:
+      POSTGRES_DB: resident_portal
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: resident-portal-redis
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+    container_name: resident-portal-backend
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8080:8080"
+    command: sh -c "npm run migrate && npm run start"
+
+  worker:
+    build:
+      context: ./backend
+    container_name: resident-portal-worker
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    command: npm run worker
+
+volumes:
+  pgdata:
