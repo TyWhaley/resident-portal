@@ -1,4 +1,4 @@
-package example.resident.resident_portal_mobile
+package com.coastalrealtyservices.residentportal
 
 import io.flutter.embedding.android.FlutterActivity
 

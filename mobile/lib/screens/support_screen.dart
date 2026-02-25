@@ -1,15 +1,47 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
 import '../services/app_nav_service.dart';
 import '../services/portal_controller.dart';
 
-class SupportScreen extends StatelessWidget {
+class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
+
+  @override
+  State<SupportScreen> createState() => _SupportScreenState();
+}
+
+class _SupportScreenState extends State<SupportScreen> {
+  final _review = InAppReview.instance;
 
   Future<void> _launch(String uri) async {
     await launchUrl(Uri.parse(uri), mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _sendFeedback() async {
+    final subject = Uri.encodeComponent('Resident Portal App Feedback');
+    final body = Uri.encodeComponent(
+      'Please describe the issue or suggestion:\n\n'
+      'Device: ${Platform.operatingSystem}\n'
+      'App: Resident Portal Mobile\n',
+    );
+    await _launch('mailto:${AppConfig.feedbackEmail}?subject=$subject&body=$body');
+  }
+
+  Future<void> _rateApp() async {
+    final available = await _review.isAvailable();
+    if (available) {
+      await _review.requestReview();
+      return;
+    }
+
+    if (AppConfig.iosAppStoreId.isNotEmpty) {
+      await _review.openStoreListing(appStoreId: AppConfig.iosAppStoreId);
+    }
   }
 
   @override
@@ -26,6 +58,14 @@ class SupportScreen extends StatelessWidget {
         ElevatedButton(
           onPressed: () => _launch('mailto:${AppConfig.supportEmail}'),
           child: const Text('Email Office'),
+        ),
+        ElevatedButton(
+          onPressed: _sendFeedback,
+          child: const Text('Send App Feedback'),
+        ),
+        ElevatedButton(
+          onPressed: _rateApp,
+          child: const Text('Rate This App'),
         ),
         if (AppConfig.supportSms.isNotEmpty)
           ElevatedButton(

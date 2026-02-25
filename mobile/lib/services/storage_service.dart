@@ -12,6 +12,11 @@ class StorageService {
   static const _linkTokenKey = 'tenant_link_token';
   static const _tenantIdKey = 'tenant_id';
   static const _installationIdKey = 'installation_id';
+  static const _biometricUnlockEnabledKey = 'biometric_unlock_enabled';
+  static const _biometricPaymentEnabledKey = 'biometric_payment_enabled';
+  static const _appOpenCountKey = 'app_open_count';
+  static const _lastReviewPromptAtMsKey = 'last_review_prompt_at_ms';
+  static const _portalTypeKey = 'portal_type';
 
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
@@ -32,6 +37,60 @@ class StorageService {
 
   Future<String?> getTenantId() => _secureStorage.read(key: _tenantIdKey);
   Future<String?> getLinkToken() => _secureStorage.read(key: _linkTokenKey);
+
+  Future<bool> isLinked() async {
+    final tenantId = await getTenantId();
+    final linkToken = await getLinkToken();
+    return (tenantId != null && tenantId.isNotEmpty) || (linkToken != null && linkToken.isNotEmpty);
+  }
+
+  Future<bool> getBiometricUnlockEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_biometricUnlockEnabledKey) ?? false;
+  }
+
+  Future<void> setBiometricUnlockEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_biometricUnlockEnabledKey, enabled);
+  }
+
+  Future<bool> getBiometricPaymentEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_biometricPaymentEnabledKey) ?? false;
+  }
+
+  Future<void> setBiometricPaymentEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_biometricPaymentEnabledKey, enabled);
+  }
+
+  Future<int> incrementAndGetAppOpenCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final next = (prefs.getInt(_appOpenCountKey) ?? 0) + 1;
+    await prefs.setInt(_appOpenCountKey, next);
+    return next;
+  }
+
+  Future<int?> getLastReviewPromptAtMs() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_lastReviewPromptAtMsKey);
+  }
+
+  Future<void> setLastReviewPromptAtMs(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_lastReviewPromptAtMsKey, value);
+  }
+
+  /// Returns 'resident', 'owner', or null if not yet chosen.
+  Future<String?> getPortalType() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_portalTypeKey);
+  }
+
+  Future<void> setPortalType(String type) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_portalTypeKey, type);
+  }
 
   Future<NotificationPrefs> loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();

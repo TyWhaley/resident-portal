@@ -5,8 +5,10 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import '../config.dart';
+import '../services/biometric_auth_service.dart';
 import '../services/deep_link_service.dart';
 import '../services/portal_controller.dart';
+import '../services/storage_service.dart';
 
 class PortalScreen extends StatefulWidget {
   const PortalScreen({super.key});
@@ -18,6 +20,9 @@ class PortalScreen extends StatefulWidget {
 class _PortalScreenState extends State<PortalScreen> {
   late final WebViewController _webController;
   bool _loading = true;
+  DateTime? _paymentAuthValidUntil;
+  int _authFailureRedirects = 0;
+  static const _maxAuthFailureRedirects = 2;
 
   @override
   void initState() {
@@ -28,18 +33,31 @@ class _PortalScreenState extends State<PortalScreen> {
         NavigationDelegate(
           onNavigationRequest: (request) async {
             final uri = Uri.parse(request.url);
-            if (uri.host == AppConfig.portalDomain) {
-              final path = uri.path.toLowerCase();
-              if (path.endsWith(".pdf") || path.endsWith(".doc") || path.endsWith(".docx") || path.endsWith(".xls") || path.endsWith(".xlsx") || uri.query.toLowerCase().contains("download")) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-                return NavigationDecision.prevent;
+            final scheme = uri.scheme.toLowerCase();
+
+            // Keep normal web navigation inside the in-app webview.
+            if (scheme == 'http' || scheme == 'https') {
+              if (await _shouldRequirePaymentAuth(uri)) {
+                final now = DateTime.now();
+                final stillValid = _paymentAuthValidUntil != null && _paymentAuthValidUntil!.isAfter(now);
+                if (!stillValid) {
+                  final approved = await BiometricAuthService.instance.authenticateForPayment();
+                  if (!approved) {
+                    return NavigationDecision.prevent;
+                  }
+                  _paymentAuthValidUntil = now.add(const Duration(minutes: 2));
+                }
               }
               return NavigationDecision.navigate;
             }
+
+            // Open non-web schemes externally (tel:, mailto:, sms:, etc.).
             await launchUrl(uri, mode: LaunchMode.externalApplication);
             return NavigationDecision.prevent;
           },
-          onPageFinished: (_) {
+          onPageFinished: (_) async {
+            await _normalizeViewport();
+            await _redirectOnAuthFailure();
             if (mounted) {
               setState(() => _loading = false);
             }
@@ -62,6 +80,52 @@ class _PortalScreenState extends State<PortalScreen> {
     PortalNavigationController.instance.pendingDeepLink.addListener(_applyDeepLink);
   }
 
+  bool _looksLikePaymentNavigation(Uri uri) {
+    final text = ('${uri.path}?${uri.query}').toLowerCase();
+    return text.contains('payment') || text.contains('payments') || text.contains('paynow') || text.contains('make-payment');
+  }
+
+  Future<bool> _shouldRequirePaymentAuth(Uri uri) async {
+    if (!_looksLikePaymentNavigation(uri)) return false;
+    final enabled = await StorageService.instance.getBiometricPaymentEnabled();
+    if (!enabled) return false;
+    return StorageService.instance.isLinked();
+  }
+
+  Future<void> _redirectOnAuthFailure() async {
+    if (_authFailureRedirects >= _maxAuthFailureRedirects) return;
+    final result = await _webController.runJavaScriptReturningResult(
+      '(document.body && document.body.innerText || "").indexOf("Authorization Failure") !== -1',
+    );
+    final isAuthFailure = result == true || result == 'true';
+    if (isAuthFailure) {
+      _authFailureRedirects++;
+      await _webController.loadRequest(AppConfig.portalUri);
+      return;
+    }
+    // Reset counter on any successful (non-error) page load.
+    _authFailureRedirects = 0;
+  }
+
+  Future<void> _normalizeViewport() async {
+    await _webController.runJavaScript('''
+      (function () {
+        var head = document.head || document.getElementsByTagName('head')[0];
+        if (!head) return;
+        var meta = document.querySelector('meta[name="viewport"]');
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('name', 'viewport');
+          head.appendChild(meta);
+        }
+        meta.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover');
+        if (document.documentElement) document.documentElement.style.overflowX = 'hidden';
+        if (document.body) document.body.style.overflowX = 'hidden';
+        window.scrollTo(0, window.scrollY || 0);
+      })();
+    ''');
+  }
+
   @override
   void dispose() {
     PortalNavigationController.instance.pendingDeepLink.removeListener(_applyDeepLink);
@@ -81,7 +145,23 @@ class _PortalScreenState extends State<PortalScreen> {
     return Stack(
       children: [
         WebViewWidget(controller: _webController),
-        if (_loading) const Center(child: CircularProgressIndicator()),
+        if (_loading)
+          Container(
+            color: Colors.white,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/icons/coastal_logo_resized.png',
+                    width: 200,
+                  ),
+                  const SizedBox(height: 24),
+                  const CircularProgressIndicator(),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }

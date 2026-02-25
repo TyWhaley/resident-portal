@@ -2,15 +2,16 @@ import '../config.dart';
 
 class DeepLinkService {
   static String portalPathForDeepLink(String deepLink) {
+    final type = AppConfig.portalType;
     switch (deepLink) {
       case 'app://pay':
-        return '/resident/payments';
+        return '/$type/payments';
       case 'app://maintenance/new':
-        return '/resident/maintenance/new';
+        return '/$type/maintenance/new';
       case 'app://messages':
-        return '/resident/messages';
+        return '/$type/messages';
       default:
-        return '/resident';
+        return '/$type';
     }
   }
 

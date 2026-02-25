@@ -1,17 +1,23 @@
-# resident_portal_mobile
+# Resident Portal Mobile
 
-A new Flutter project.
+Flutter mobile app wrapper for the Coastal Realty resident portal.
 
-## Getting Started
+## iOS run
 
-This project is a starting point for a Flutter application.
+```bash
+flutter run -d "Ty’s iPhone (2)" \
+  --dart-define=RENTVINE_PORTAL_URL=https://coastalrealtyservices.rentvine.com/portals/resident \
+  --dart-define=BACKEND_BASE_URL=https://anita-catagenetic-carter.ngrok-free.dev \
+  --dart-define=SUPPORT_PHONE=850-244-2100 \
+  --dart-define=SUPPORT_EMAIL=rentals@coastalrealtyservices.com
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Android release + Play testing
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+See:
+- `docs/android-release-testing.md`
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## iOS TestFlight + feedback
+
+See:
+- `docs/ios-testflight-feedback.md`

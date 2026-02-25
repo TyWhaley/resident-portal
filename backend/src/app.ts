@@ -1,12 +1,9 @@
 import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
-import helmet from '@fastify/helmet';
-import cors from '@fastify/cors';
 import { deviceRoutes } from './routes/devices.js';
 import { tenantRoutes } from './routes/tenants.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { healthRoutes } from './routes/health.js';
-import { env } from './config/env.js';
 
 export function buildApp() {
   const app = Fastify({
@@ -29,24 +26,6 @@ export function buildApp() {
       }
     }
   );
-
-  app.register(helmet, {
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https:']
-      }
-    }
-  });
-
-  app.register(cors, {
-    origin: env.APP_ENV === 'prod'
-      ? ['https://coastalrealtyservices.rentvine.com']
-      : true,
-    credentials: true
-  });
 
   app.register(rateLimit, {
     max: 60,

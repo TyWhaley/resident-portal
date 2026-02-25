@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -28,6 +29,10 @@ class PushService {
   }
 
   Future<void> registerForPushIfLinked() async {
+    if (Firebase.apps.isEmpty) {
+      return;
+    }
+
     final storage = StorageService.instance;
     final linkToken = await storage.getLinkToken();
     final tenantId = await storage.getTenantId();

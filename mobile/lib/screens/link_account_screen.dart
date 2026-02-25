@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/backend_api_service.dart';
+import '../services/push_service.dart';
 import '../services/storage_service.dart';
 
 class LinkAccountScreen extends StatefulWidget {
@@ -55,6 +56,9 @@ class _LinkAccountScreenState extends State<LinkAccountScreen> {
       final tenantId = response['tenant_id'] as String;
       final token = response['link_token'] as String;
       await StorageService.instance.saveLink(tenantId, token);
+      try {
+        await PushService.instance.registerForPushIfLinked();
+      } catch (_) {}
 
       if (mounted) {
         setState(() => _status = 'Account linked successfully.');

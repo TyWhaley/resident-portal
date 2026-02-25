@@ -7,9 +7,13 @@ interface TenantRecord {
 }
 
 export async function findTenantByEmailOrPhone(input: string): Promise<TenantRecord | null> {
+  const normalized = input.trim();
   const result = await pool.query<TenantRecord>(
-    'SELECT tenant_id, email, phone FROM tenants WHERE email = $1 OR phone = $1 LIMIT 1',
-    [input]
+    `SELECT tenant_id, email, phone
+     FROM tenants
+     WHERE LOWER(email) = LOWER($1) OR phone = $1
+     LIMIT 1`,
+    [normalized]
   );
   return result.rows[0] ?? null;
 }

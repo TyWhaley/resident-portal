@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/notification_prefs.dart';
+import '../services/biometric_auth_service.dart';
 import '../services/local_notification_service.dart';
 import '../services/push_service.dart';
 import '../services/storage_service.dart';
@@ -16,6 +17,9 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   NotificationPrefs _prefs = NotificationPrefs.defaults();
   bool _loading = true;
+  bool _biometricAvailable = false;
+  bool _biometricUnlockEnabled = false;
+  bool _biometricPaymentEnabled = false;
 
   @override
   void initState() {
@@ -25,10 +29,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _init() async {
     final loaded = await StorageService.instance.loadPrefs();
+    final biometricAvailable = await BiometricAuthService.instance.isAvailable();
+    final biometricUnlockEnabled = await StorageService.instance.getBiometricUnlockEnabled();
+    final biometricPaymentEnabled = await StorageService.instance.getBiometricPaymentEnabled();
+    if (loaded.notificationsEnabled) {
+      await PushService.instance.registerForPushIfLinked();
+    }
     setState(() {
       _prefs = loaded;
+      _biometricAvailable = biometricAvailable;
+      _biometricUnlockEnabled = biometricUnlockEnabled;
+      _biometricPaymentEnabled = biometricPaymentEnabled;
       _loading = false;
     });
+  }
+
+  Future<void> _toggleBiometricUnlock(bool enabled) async {
+    if (enabled && !_biometricAvailable) return;
+    await StorageService.instance.setBiometricUnlockEnabled(enabled);
+    setState(() => _biometricUnlockEnabled = enabled);
+  }
+
+  Future<void> _toggleBiometricPayment(bool enabled) async {
+    if (enabled && !_biometricAvailable) return;
+    await StorageService.instance.setBiometricPaymentEnabled(enabled);
+    setState(() => _biometricPaymentEnabled = enabled);
   }
 
   Future<void> _update(NotificationPrefs updated) async {
@@ -63,6 +88,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           title: const Text('Enable notifications'),
           value: _prefs.notificationsEnabled,
           onChanged: _toggleNotifications,
+        ),
+        SwitchListTile(
+          title: const Text('Unlock app with biometrics'),
+          subtitle: Text(_biometricAvailable ? 'Use Face ID / Touch ID on app open.' : 'Biometrics unavailable on this device.'),
+          value: _biometricUnlockEnabled,
+          onChanged: _biometricAvailable ? _toggleBiometricUnlock : null,
+        ),
+        SwitchListTile(
+          title: const Text('Require biometrics for payments'),
+          subtitle: Text(_biometricAvailable ? 'Prompt before payment actions in portal.' : 'Biometrics unavailable on this device.'),
+          value: _biometricPaymentEnabled,
+          onChanged: _biometricAvailable ? _toggleBiometricPayment : null,
         ),
         ListTile(
           title: const Text('Rent due day of month'),

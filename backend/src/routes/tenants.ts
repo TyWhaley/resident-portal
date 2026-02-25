@@ -29,7 +29,9 @@ export const tenantRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(400).send({ error: parsed.error.flatten() });
     }
 
-    const destination = parsed.data.email ?? parsed.data.phone;
+    const normalizedEmail = parsed.data.email?.trim().toLowerCase();
+    const normalizedPhone = parsed.data.phone?.trim();
+    const destination = normalizedEmail ?? normalizedPhone;
     if (!destination) {
       return reply.status(400).send({ error: 'Provide email or phone' });
     }

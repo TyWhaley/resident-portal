@@ -37,10 +37,18 @@ class BackendApiService {
   }
 
   Future<Map<String, dynamic>> requestLink({String? email, String? phone}) async {
+    final payload = <String, String>{};
+    if (email != null && email.trim().isNotEmpty) {
+      payload['email'] = email.trim();
+    }
+    if (phone != null && phone.trim().isNotEmpty) {
+      payload['phone'] = phone.trim();
+    }
+
     final response = await http.post(
       _uri('/v1/tenants/request-link'),
       headers: {'content-type': 'application/json'},
-      body: jsonEncode({'email': email, 'phone': phone}),
+      body: jsonEncode(payload),
     );
 
     if (response.statusCode >= 300) {
