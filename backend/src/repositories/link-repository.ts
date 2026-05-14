@@ -10,12 +10,21 @@ function maskDestination(value: string): string {
   return `${value.slice(0, 3)}***${value.slice(-2)}`;
 }
 
+export async function countRecentLinkRequests(tenantId: string, windowMinutes = 10): Promise<number> {
+  const result = await pool.query<{ count: string }>(
+    `SELECT COUNT(*) AS count FROM link_requests
+     WHERE tenant_id = $1 AND created_at > NOW() - ($2 || ' minutes')::interval`,
+    [tenantId, windowMinutes]
+  );
+  return parseInt(result.rows[0].count, 10);
+}
+
 export async function createLinkRequest(tenantId: string, destination: string): Promise<{
   linkRequestId: string;
   maskedDestination: string;
   otpCode: string;
 }> {
-  const otpCode = String(Math.floor(100000 + Math.random() * 900000));
+  const otpCode = String(crypto.randomInt(100000, 999999));
   const result = await pool.query<{ link_request_id: string }>(
     `INSERT INTO link_requests (tenant_id, destination_mask, otp_hash, expires_at)
      VALUES ($1, $2, $3, NOW() + INTERVAL '10 minutes')

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as dev;
 
 import 'package:app_links/app_links.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -33,18 +34,24 @@ Future<void> main() async {
 Future<void> _bootstrapServices() async {
   try {
     await Firebase.initializeApp();
-  } catch (_) {}
+  } catch (e, st) {
+    dev.log('Firebase init failed', error: e, stackTrace: st, name: 'bootstrap');
+  }
 
   try {
     await LocalNotificationService.instance.init();
-  } catch (_) {}
+  } catch (e, st) {
+    dev.log('Local notifications init failed', error: e, stackTrace: st, name: 'bootstrap');
+  }
 
   try {
     await PushService.instance.initialize((deepLink) {
       AppNavService.instance.openPortalTab();
       PortalNavigationController.instance.openDeepLink(deepLink);
     });
-  } catch (_) {}
+  } catch (e, st) {
+    dev.log('Push service init failed', error: e, stackTrace: st, name: 'bootstrap');
+  }
 
   try {
     final appLinks = AppLinks();
@@ -54,7 +61,9 @@ Future<void> _bootstrapServices() async {
         PortalNavigationController.instance.openDeepLink(uri.toString());
       }
     });
-  } catch (_) {}
+  } catch (e, st) {
+    dev.log('App links init failed', error: e, stackTrace: st, name: 'bootstrap');
+  }
 }
 
 class ResidentPortalApp extends StatelessWidget {
@@ -67,7 +76,7 @@ class ResidentPortalApp extends StatelessWidget {
     const brandBlue = Color(0xFF0072BC);
 
     return MaterialApp(
-      title: 'Coastal Realty Portal',
+      title: 'Coastal Hub',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

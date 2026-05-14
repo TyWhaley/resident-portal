@@ -1,27 +1,10 @@
 import { Worker } from 'bullmq';
 import { routeRentvineEvent } from '../services/event-router.js';
 import { enqueuePushJob } from './queues.js';
-import { markWebhookEventProcessed } from '../repositories/webhook-repository.js';
+import { markWebhookEventProcessed, cleanupOldWebhookEvents } from '../repositories/webhook-repository.js';
 import { sendTenantPush } from '../services/push-service.js';
 import { env } from '../config/env.js';
-
-function redisConnectionFromUrl(redisUrl: string): {
-  host: string;
-  port: number;
-  username?: string;
-  password?: string;
-  db?: number;
-} {
-  const parsed = new URL(redisUrl);
-  const dbPath = parsed.pathname.replace('/', '');
-  return {
-    host: parsed.hostname,
-    port: Number(parsed.port || '6379'),
-    username: parsed.username || undefined,
-    password: parsed.password || undefined,
-    db: dbPath ? Number(dbPath) : undefined
-  };
-}
+import { redisConnectionFromUrl } from './connection.js';
 
 const workerConnection = redisConnectionFromUrl(env.REDIS_URL);
 
@@ -66,5 +49,22 @@ webhookWorker.on('failed', async (job, error) => {
 pushWorker.on('failed', (job, error) => {
   console.error('push worker failed', job?.id, error);
 });
+
+async function shutdown(signal: string) {
+  console.log(`${signal} received, closing workers gracefully`);
+  await webhookWorker.close();
+  await pushWorker.close();
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Run webhook cleanup every 6 hours
+setInterval(() => {
+  cleanupOldWebhookEvents().catch((err) =>
+    console.error('Webhook cleanup failed', err)
+  );
+}, 6 * 60 * 60 * 1000);
 
 console.log('Workers started');

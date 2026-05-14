@@ -20,6 +20,8 @@ class PortalScreen extends StatefulWidget {
 class _PortalScreenState extends State<PortalScreen> {
   late final WebViewController _webController;
   bool _loading = true;
+  bool _hasError = false;
+  String? _errorMessage;
   DateTime? _paymentAuthValidUntil;
   int _authFailureRedirects = 0;
   static const _maxAuthFailureRedirects = 2;
@@ -59,7 +61,23 @@ class _PortalScreenState extends State<PortalScreen> {
             await _normalizeViewport();
             await _redirectOnAuthFailure();
             if (mounted) {
-              setState(() => _loading = false);
+              setState(() {
+                _loading = false;
+                _hasError = false;
+                _errorMessage = null;
+              });
+            }
+          },
+          onWebResourceError: (error) {
+            // Only treat main frame errors as page-level failures.
+            if (error.isForMainFrame ?? true) {
+              if (mounted) {
+                setState(() {
+                  _loading = false;
+                  _hasError = true;
+                  _errorMessage = error.description;
+                });
+              }
             }
           },
         ),
@@ -140,11 +158,62 @@ class _PortalScreenState extends State<PortalScreen> {
     PortalNavigationController.instance.clear();
   }
 
+  Future<void> _reload() async {
+    setState(() {
+      _loading = true;
+      _hasError = false;
+      _errorMessage = null;
+    });
+    await _webController.loadRequest(AppConfig.portalUri);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        WebViewWidget(controller: _webController),
+        RefreshIndicator(
+          onRefresh: _reload,
+          child: _hasError
+              ? ListView(
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.8,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.wifi_off, size: 56, color: Colors.grey),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Unable to load portal',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _errorMessage ?? 'Check your internet connection and try again.',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: _reload,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : CustomScrollView(
+                  slivers: [
+                    SliverFillRemaining(
+                      child: WebViewWidget(controller: _webController),
+                    ),
+                  ],
+                ),
+        ),
         if (_loading)
           Container(
             color: Colors.white,

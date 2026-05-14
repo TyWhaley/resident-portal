@@ -30,3 +30,11 @@ export async function getPushTokensForTenant(tenantId: string): Promise<string[]
   );
   return result.rows.map((row: { push_token: string }) => row.push_token);
 }
+
+export async function disableStalePushTokens(tokens: string[]): Promise<void> {
+  if (tokens.length === 0) return;
+  await pool.query(
+    `UPDATE devices SET enabled = false WHERE push_token = ANY($1::text[])`,
+    [tokens]
+  );
+}

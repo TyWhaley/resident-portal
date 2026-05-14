@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import { env } from '../config/env.js';
+import { redisConnectionFromUrl } from './connection.js';
 import type { PushPayload } from '../domain/types.js';
 
 export interface ProcessWebhookJob {
@@ -11,24 +12,6 @@ export interface ProcessWebhookJob {
 export interface SendPushJob {
   tenantId: string;
   payload: PushPayload;
-}
-
-function redisConnectionFromUrl(redisUrl: string): {
-  host: string;
-  port: number;
-  username?: string;
-  password?: string;
-  db?: number;
-} {
-  const parsed = new URL(redisUrl);
-  const dbPath = parsed.pathname.replace('/', '');
-  return {
-    host: parsed.hostname,
-    port: Number(parsed.port || '6379'),
-    username: parsed.username || undefined,
-    password: parsed.password || undefined,
-    db: dbPath ? Number(dbPath) : undefined
-  };
 }
 
 const queueConnection = redisConnectionFromUrl(env.REDIS_URL);

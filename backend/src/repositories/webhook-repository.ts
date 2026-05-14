@@ -17,3 +17,9 @@ export async function markWebhookEventProcessed(eventId: string, status: 'proces
     [eventId, status]
   );
 }
+
+export async function cleanupOldWebhookEvents(): Promise<void> {
+  await pool.query(
+    `DELETE FROM webhook_events WHERE received_at < NOW() - INTERVAL '30 days'`
+  );
+}

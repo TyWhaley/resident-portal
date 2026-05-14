@@ -1,6 +1,6 @@
 import admin from 'firebase-admin';
 import { env } from '../config/env.js';
-import { getPushTokensForTenant } from '../repositories/device-repository.js';
+import { getPushTokensForTenant, disableStalePushTokens } from '../repositories/device-repository.js';
 import type { PushPayload } from '../domain/types.js';
 
 let initialized = false;
@@ -24,7 +24,7 @@ export async function sendTenantPush(tenantId: string, payload: PushPayload): Pr
     return;
   }
 
-  await admin.messaging().sendEachForMulticast({
+  const response = await admin.messaging().sendEachForMulticast({
     tokens,
     notification: {
       title: payload.title,
@@ -47,6 +47,21 @@ export async function sendTenantPush(tenantId: string, payload: PushPayload): Pr
       }
     }
   });
+
+  const staleTokens: string[] = [];
+  response.responses.forEach((res, idx) => {
+    if (
+      res.error &&
+      (res.error.code === 'messaging/registration-token-not-registered' ||
+       res.error.code === 'messaging/invalid-registration-token')
+    ) {
+      staleTokens.push(tokens[idx]);
+    }
+  });
+
+  if (staleTokens.length > 0) {
+    await disableStalePushTokens(staleTokens);
+  }
 }
 
 export async function sendTopicAnnouncement(topic: string, payload: PushPayload): Promise<void> {

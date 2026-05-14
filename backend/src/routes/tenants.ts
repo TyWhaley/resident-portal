@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import {
   consumeLinkRequest,
+  countRecentLinkRequests,
   createLinkRequest,
   createTenantLinkToken
 } from '../repositories/link-repository.js';
@@ -39,6 +40,11 @@ export const tenantRoutes: FastifyPluginAsync = async (app) => {
     const tenant = await findTenantByEmailOrPhone(destination);
     if (!tenant) {
       return reply.status(404).send({ error: 'Tenant not found' });
+    }
+
+    const recentCount = await countRecentLinkRequests(tenant.tenant_id);
+    if (recentCount >= 3) {
+      return reply.status(429).send({ error: 'Too many code requests. Try again later.' });
     }
 
     const requestResult = await createLinkRequest(tenant.tenant_id, destination);

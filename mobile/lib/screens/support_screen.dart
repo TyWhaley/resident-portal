@@ -23,11 +23,11 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _sendFeedback() async {
-    final subject = Uri.encodeComponent('Resident Portal App Feedback');
+    final subject = Uri.encodeComponent('Coastal Hub App Feedback');
     final body = Uri.encodeComponent(
       'Please describe the issue or suggestion:\n\n'
       'Device: ${Platform.operatingSystem}\n'
-      'App: Resident Portal Mobile\n',
+      'App: Coastal Hub\n',
     );
     await _launch('mailto:${AppConfig.feedbackEmail}?subject=$subject&body=$body');
   }
@@ -95,8 +95,11 @@ class _SupportScreenState extends State<SupportScreen> {
           subtitle: Text('Use app://maintenance/new or Portal > Maintenance.'),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Privacy policy placeholder: This app stores minimal preferences, installation ID, and link status only.',
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Privacy Policy'),
+          trailing: const Icon(Icons.open_in_new, size: 18),
+          onTap: () => _launch('https://coastalrealtyservices.com/privacy-policy'),
         ),
       ],
     );

@@ -13,11 +13,11 @@ class BiometricAuthService {
   }
 
   Future<bool> authenticateForAppUnlock() {
-    return _authenticate('Unlock Resident Portal');
+    return _authenticate('Unlock Coastal Hub');
   }
 
   Future<bool> authenticateForPayment() {
-    return _authenticate('Confirm payment in Resident Portal');
+    return _authenticate('Confirm payment in Coastal Hub');
   }
 
   Future<bool> _authenticate(String reason) async {
